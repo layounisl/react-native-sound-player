@@ -20,9 +20,11 @@ RCT_EXPORT_METHOD(playUrl:(NSString *)url) {
     NSURL *soundURL = [NSURL URLWithString:url];
     self.avPlayer = [[AVPlayer alloc] initWithURL:soundURL];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(itemDidFinishPlaying:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
+    
+    [avPlayer addObserver:self forKeyPath:@"status" options:0 context:nil];
 
     [self sendEventWithName:EVENT_FINISHED_LOADING body:@{@"success": [NSNumber numberWithBool:true]}];
-    [self sendEventWithName:EVENT_FINISHED_LOADING_URL body: @{@"success": [NSNumber numberWithBool:true], @"url": url}];
+    
     [self.avPlayer play];
 }
 
@@ -96,6 +98,17 @@ RCT_REMAP_METHOD(getInfo,
                                @"duration": [NSNumber numberWithFloat:CMTimeGetSeconds(duration)]
                                };
         resolve(data);
+    }
+}
+    
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
+                        change:(NSDictionary *)change context:(void *)context {
+    if (object == self.avPlayer && [keyPath isEqualToString:@"status"]) {
+        if (self.avPlayer.status == AVPlayerStatusReadyToPlay) {
+            [self sendEventWithName:EVENT_FINISHED_LOADING_URL body: @{@"success": [NSNumber numberWithBool:true], @"url": @"url"}];
+        } else if (self.avPlayer.status == AVPlayerStatusFailed) {
+            assert("Error loading")
+        }
     }
 }
 
