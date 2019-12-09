@@ -28,10 +28,12 @@ public class RNSoundPlayerModule extends ReactContextBaseJavaModule {
 
   private final ReactApplicationContext reactContext;
   private MediaPlayer mediaPlayer;
+  private float volume;
 
   public RNSoundPlayerModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
+    this.volume = 1.0f;
   }
 
   @Override
@@ -42,7 +44,7 @@ public class RNSoundPlayerModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void playSoundFile(String name, String type) throws IOException {
     mountSoundFile(name, type);
-    this.mediaPlayer.start();
+    this.resume();
   }
 
   @ReactMethod
@@ -52,32 +54,13 @@ public class RNSoundPlayerModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void playUrl(String url) throws IOException {
-    if (this.mediaPlayer == null) {
-      Uri uri = Uri.parse(url);
-      this.mediaPlayer = MediaPlayer.create(getCurrentActivity(), uri);
-      this.mediaPlayer.setOnCompletionListener(
-        new OnCompletionListener() {
-          @Override
-          public void onCompletion(MediaPlayer arg0) {
-            WritableMap params = Arguments.createMap();
-            params.putBoolean("success", true);
-            sendEvent(getReactApplicationContext(), EVENT_FINISHED_PLAYING, params);
-          }
-      });
-    } else {
-      Uri uri = Uri.parse(url);
-      this.mediaPlayer.reset();
-      this.mediaPlayer.setDataSource(getCurrentActivity(), uri);
-      this.mediaPlayer.prepare();
-    }
-    WritableMap params = Arguments.createMap();
-    params.putBoolean("success", true);
-    sendEvent(getReactApplicationContext(), EVENT_FINISHED_LOADING, params);
-    WritableMap onFinshedLoadingURLParams = Arguments.createMap();
-    onFinshedLoadingURLParams.putBoolean("success", true);
-    onFinshedLoadingURLParams.putString("url", url);
-    sendEvent(getReactApplicationContext(), EVENT_FINISHED_LOADING_URL, onFinshedLoadingURLParams);
-    this.mediaPlayer.start();
+    prepareUrl(url);
+    this.resume();
+  }
+
+  @ReactMethod
+  public void loadUrl(String url) throws IOException {
+    prepareUrl(url);
   }
 
   @ReactMethod
@@ -88,8 +71,9 @@ public class RNSoundPlayerModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void resume() throws IllegalStateException {
+  public void resume() throws IOException, IllegalStateException {
     if (this.mediaPlayer != null) {
+      this.setVolume(this.volume);
       this.mediaPlayer.start();
     }
   }
@@ -102,7 +86,15 @@ public class RNSoundPlayerModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void seek(float seconds) throws IllegalStateException {
+    if (this.mediaPlayer != null) {
+      this.mediaPlayer.seekTo((int)seconds * 1000);
+    }
+  }
+
+  @ReactMethod
   public void setVolume(float volume) throws IOException {
+    this.volume = volume;
     if (this.mediaPlayer != null) {
       this.mediaPlayer.setVolume(volume, volume);
     }
@@ -182,5 +174,33 @@ public class RNSoundPlayerModule extends ReactContextBaseJavaModule {
     }
 
     return Uri.parse("file://" + folder + "/" + file);
+  }
+
+  private void prepareUrl(String url) throws IOException {
+    if (this.mediaPlayer == null) {
+      Uri uri = Uri.parse(url);
+      this.mediaPlayer = MediaPlayer.create(getCurrentActivity(), uri);
+      this.mediaPlayer.setOnCompletionListener(
+        new OnCompletionListener() {
+          @Override
+          public void onCompletion(MediaPlayer arg0) {
+            WritableMap params = Arguments.createMap();
+            params.putBoolean("success", true);
+            sendEvent(getReactApplicationContext(), EVENT_FINISHED_PLAYING, params);
+          }
+      });
+    } else {
+      Uri uri = Uri.parse(url);
+      this.mediaPlayer.reset();
+      this.mediaPlayer.setDataSource(getCurrentActivity(), uri);
+      this.mediaPlayer.prepare();
+    }
+    WritableMap params = Arguments.createMap();
+    params.putBoolean("success", true);
+    sendEvent(getReactApplicationContext(), EVENT_FINISHED_LOADING, params);
+    WritableMap onFinshedLoadingURLParams = Arguments.createMap();
+    onFinshedLoadingURLParams.putBoolean("success", true);
+    onFinshedLoadingURLParams.putString("url", url);
+    sendEvent(getReactApplicationContext(), EVENT_FINISHED_LOADING_URL, onFinshedLoadingURLParams);
   }
 }

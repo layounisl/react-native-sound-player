@@ -3,24 +3,29 @@
  */
 'use strict'
 
-import { NativeModules, NativeEventEmitter } from 'react-native'
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native'
 const { RNSoundPlayer } = NativeModules
 
 const _soundPlayerEmitter = new NativeEventEmitter(RNSoundPlayer)
 let _finishedPlayingListener = null
 let _finishedLoadingListener = null
 
-module.exports = {
+export default {
+
   playSoundFile: (name: string, type: string) => {
     RNSoundPlayer.playSoundFile(name, type)
+  },
+
+  loadSoundFile: (name: string, type: string) => {
+    RNSoundPlayer.loadSoundFile(name, type)
   },
 
   playUrl: (url: string) => {
     RNSoundPlayer.playUrl(url)
   },
 
-  loadSoundFile: (name: string, type: string) => {
-    RNSoundPlayer.loadSoundFile(name, type)
+  loadUrl: (url: string) => {
+    RNSoundPlayer.loadUrl(url)
   },
 
   onFinishedPlaying: (callback: (success: boolean) => any) => {
@@ -66,8 +71,20 @@ module.exports = {
     RNSoundPlayer.stop()
   },
 
+  seek: (seconds: number) => {
+    RNSoundPlayer.seek(seconds)
+  },
+
   setVolume: (volume: number) => {
     RNSoundPlayer.setVolume(volume)
+  },
+
+  setSpeaker: (on: boolean) => {
+    if(Platform.OS === "android"){
+      console.log("setSpeaker is not implement on Android");
+    } else {
+      RNSoundPlayer.setSpeaker(on);
+    }
   },
 
   getInfo: async () => RNSoundPlayer.getInfo(),
